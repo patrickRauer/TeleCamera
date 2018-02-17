@@ -36,8 +36,8 @@ class Camera:
     of a crash.
     """
 
-    def __init__(self, camera_driver_name='',
-                 filterwheel_driver_name='',
+    def __init__(self, camera_driver_name='ASCOM.Simulator.Camera',
+                 filterwheel_driver_name='ASCOM.Simulator.FilterWheel',
                  signal=None):
         self.__driver_initialisation__(camera_driver_name, filterwheel_driver_name)
         self.camera_status = CameraStatus()
@@ -96,7 +96,7 @@ class Camera:
                     not self.is_readout_in_process()):
                 if not self.image_abort:
                     self.camera.download_image()
-                    self.camera_status.start_readout(self.camera_status.get_image_information().readout_time)
+                    self.camera_status.start_readout(self.camera_status.get_image_information().get_readout_time())
                     self.readout_time = time.time()
                 else:
                     self.camera_status.reset()
@@ -118,16 +118,24 @@ class Camera:
         hdu = fits.PrimaryHDU(img)
         hdu.header = self.__create_header__(hdu.header, info)
         save_path = info.get_save_path()
+        c = 0
+        while os.path.exists(save_path):
+            if c == 0:
+                save_path = save_path.split('.fit')[0]
+            else:
+                save_path = save_path.split('_{}.fit'.format(c-1))[0]
+            save_path += '_{}.fits'.format(c)
+            c += 1
         hdu.writeto(save_path)
 
         add_wcs(save_path, self.coordinate_signal)
 
         # add a line to image log
-        self.image_log.add(info.date,
+        self.image_log.add(info.get_utc(),
                            info.get_observer(), info.get_object_name(),
                            info.get_ra_telescope(), info.get_dec_telescope(),
                            info.get_ra_target(), info.get_dec_target(),
-                           info.image_type, str(info.get_exposure_time()),
+                           info.get_image_type(), str(info.get_exposure_time()),
                            info.get_filter_name(),
                            info.get_subframe_string(),
                            info.get_binning_string(),
@@ -163,7 +171,7 @@ class Camera:
             header[head.observer] = (info.get_observer(), 'Name of the observer')
             header[head.exposure_time] = (info.get_exposure_time(), 'Exposure time')
             header['EXPTIME'] = (info.get_exposure_time(), 'Exposure time')
-            header[head.image_type] = (info.get_ifra_type(),
+            header[head.image_type] = (info.get_iraf_type(),
                                        'Image type LIGHT, FLAT or DARK')
             filter_name = info.get_filter_name()
             header[head.filter_name] = (filter_name, 'Name of the filter')
@@ -201,7 +209,7 @@ class Camera:
                                          'The temperature which was set')
 
             # weather information
-            if info.weather is not None:
+            if info.weather_data is not None:
                 header['WEATHER'] = 'Weather data'
                 header['WDINFO'] = (info.get_weather_information(), '')
                 header[head.weather_date] = (info.weather_data.get_date(),
@@ -502,7 +510,8 @@ class Camera:
         :param path: The path where the image was saved.
         :type path: str
         """
-        self.signal_image_saved.update_label(path)
+        if self.signal_image_saved is not None:
+            self.signal_image_saved.update_label(path)
 
     def stop_exposure(self):
         """

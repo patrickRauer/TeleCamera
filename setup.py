@@ -3,7 +3,7 @@ from setuptools import setup
 setup(
     name='Camera',
     version='0.8.1',
-    packages=['', 'Camera', 'Camera.meta', 'Camera.drivers', 'Camera.dummies', 'Camera.interface'],
+    packages=['Camera', 'Camera.meta', 'Camera.drivers', 'Camera.dummies', 'Camera.interface'],
     url='',
     license='GPL',
     author='Patrick Rauer',

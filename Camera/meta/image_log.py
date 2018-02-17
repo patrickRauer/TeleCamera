@@ -1,3 +1,4 @@
+from datetime import datetime
 from threading import Thread
 import os
 
@@ -97,7 +98,10 @@ class ImageLog:
             self.last_target = target
             self.signal.update_information(infos)
         if self.is_open:
-            string = date.strftime("%Y-%m-%d %H:%M:%S")
+            if type(date) == datetime:
+                string = date.strftime("%Y-%m-%d %H:%M:%S")
+            else:
+                string = date.iso
             string += ';' + observer + ';' + target + ';' + telescope_ra + ';' + telescope_dec
             string += ';' + target_ra + ';' + target_dec + ';' + image_type
             string += ';' + exposure_time + ';' + filt + ';' + sub_frame + ';' + binning

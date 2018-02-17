@@ -9,6 +9,7 @@ import numpy as np
 import time
 
 from .Driver import Driver
+from Camera.interface.camera_meta import CameraInformation
 
 
 class CameraDriver(Driver):
@@ -179,7 +180,9 @@ class CameraDriver(Driver):
             while not self.driver.ImageReady:
                 time.sleep(0.1)
             # readout the image
+            print('download image')
             rvalue = self.driver.ImageArray
+            print('image downloaded')
             self.image_lock.acquire()
             self.image = rvalue
             self.image_lock.release()

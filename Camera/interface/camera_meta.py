@@ -208,7 +208,8 @@ class Process(Thread):
         """
         Thread-run method to update the times
         """
-        self.signal.update_label(2)
+        if self.signal is not None:
+            self.signal.update_label(2)
         # if the left time is greater than 0
         while self.time_left > 0:
             # lock the interactions
@@ -230,7 +231,8 @@ class Process(Thread):
         self.time_left = 0
         # release the lock
         self.lock.release()
-        self.signal.update_label(0)
+        if self.signal is not None:
+            self.signal.update_label(0)
 
     def get_time_left(self):
         """
