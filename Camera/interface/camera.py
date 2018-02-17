@@ -13,8 +13,6 @@ except ImportError:
     Astrometry = None
 
 from astropy.io import fits
-from astropy.time import Time
-from pytz import timezone
 import os
 import time
 
@@ -111,7 +109,7 @@ class Camera:
 
     def __save_image__(self):
         """
-        Saves the image with all available informations.
+        Saves the image with all available information.
         """
         img = self.camera.get_image()
         info = self.camera_status.get_image_information()
@@ -126,21 +124,18 @@ class Camera:
 
         # add a line to image log
         self.image_log.add(info.date,
-                           info.observer, info.name,
-                           info.ra_tele, info.dec_tele,
-                           info.ra_tar, info.dec_tar,
-                           info.image_type, str(info.expo_time),
-                           info.filter_name,
-                           '{:04d}:{:04d};{:04d}:{:04d}'.format(info.start_x,
-                                                                info.start_y,
-                                                                info.w,
-                                                                info.h),
-                           '{:1d}:{:1d}'.format(info.bin_x, info.bin_y),
+                           info.get_observer(), info.get_object_name(),
+                           info.get_ra_telescope(), info.get_dec_telescope(),
+                           info.get_ra_target(), info.get_dec_target(),
+                           info.image_type, str(info.get_exposure_time()),
+                           info.get_filter_name(),
+                           info.get_subframe_string(),
+                           info.get_binning_string(),
                            str(self.camera_status.get_temperature()),
-                           str(info.weather_data.temperature_dome),
-                           str(info.weather_data.temperature_outside),
-                           str(info.weather_data.humidity),
-                           str(info.weather_data.humidity_outside),
+                           str(info.get_temperature_dome()),
+                           str(info.get_temperature_outside()),
+                           str(info.get_humidity_dome()),
+                           str(info.get_humidity_outside()),
                            time.time() - self.readout_time, save_path)
         self.__image_done__(save_path)
         self.image_left -= 1
@@ -163,29 +158,30 @@ class Camera:
         # TODO: put the header thing in a separate file
         if info is not None:
             head = self.camera_status.get_header()
-            header[head.object] = info.name
+            header[head.object] = info.get_object_name()
             # identification
-            header[head.observer] = (info.observer, 'Name of the observer')
-            header[head.exposure_time] = (info.expo_time, 'Exposure time')
-            header['EXPTIME'] = (info.expo_time, 'Exposure time')
+            header[head.observer] = (info.get_observer(), 'Name of the observer')
+            header[head.exposure_time] = (info.get_exposure_time(), 'Exposure time')
+            header['EXPTIME'] = (info.get_exposure_time(), 'Exposure time')
             header[head.image_type] = (info.get_ifra_type(),
                                        'Image type LIGHT, FLAT or DARK')
-            filter_name = info.filter_name
+            filter_name = info.get_filter_name()
             header[head.filter_name] = (filter_name, 'Name of the filter')
 
-            header[head.bin_x] = (info.bin_x, 'Binning factor in width')
-            header[head.bin_y] = (info.bin_y, 'Binning factor in height')
-            header[head.subframe_size_x] = (info.start_x,
+            header[head.bin_x] = (info.get_bin_x(), 'Binning factor in width')
+            header[head.bin_y] = (info.get_bin_y(), 'Binning factor in height')
+            header[head.subframe_size_x] = (info.get_x0(),
                                             'Subframe X position in binned pixels')
-            header[head.subframe_size_y] = (info.start_y,
+            header[head.subframe_size_y] = (info.get_y0(),
                                             'Subframe Y position in binned pixels')
 
             # Time information
-            header[head.date_cet] = (info.date.strftime("%Y-%m-%dT%H:%M:%S"),
+            header[head.date_cet] = (info.get_cet().strftime("%Y-%m-%dT%H:%M:%S"),
                                      'Start of the observation')
-            header[head.jd] = (Time(info.date.astimezone(timezone('UTC'))).jd,
-                               'Julian Date')
-            header[head.date_obs] = (info.date.astimezone(timezone('UTC')).strftime("%Y-%m-%dT%H:%M:%S"),
+            image_time = info.get_utc()
+            header[head.jd] = (image_time.jd, 'Julian Date')
+            header['MJD'] = (image_time.mjd, 'modified julian date')
+            header[head.date_obs] = (image_time.isot,
                                      'Start of the observation')
 
             # position information
@@ -205,21 +201,20 @@ class Camera:
                                          'The temperature which was set')
 
             # weather information
-            if info.weather_data is not None:
+            if info.weather is not None:
                 header['WEATHER'] = 'Weather data'
+                header['WDINFO'] = (info.get_weather_information(), '')
                 header[head.weather_date] = (info.weather_data.get_date(),
                                              'Date and time of the weather entry')
-                header[head.temp_dome] = (float(info.weather_data.temperature_dome), 'Temperature in the dome')
-                header[head.dew_dome] = (float(info.weather_data.dewpoint_dome), 'Dewpoint-Dome')
-                header[head.hum_dome] = (float(info.weather_data.humidity), 'Humidity-Dome')
-                header[head.temp_schm] = (float(info.weather_data.temperature_schmidtplate), 'Temperature-Schmidtplate')
-                header[head.heating] = (int(info.weather_data.heating), '#0-off, 1-on')
-                header[head.temp_mount] = (float(info.weather_data.temperature_dome), 'Temperature mount')
-                header[head.heat_dew] = (int(info.weather_data.heating_dewcap), 'Heating-dewcap #0-off, 1-on')
-                header[head.hum_dew] = (float(info.weather_data.humidity_dewcap), 'Humidity-Dewcap')
-                header[head.temp_out] = (float(info.weather_data.temperature_outside),
+                header[head.temp_dome] = (info.get_temperature_dome(), 'Temperature in the dome')
+                header[head.dew_dome] = (info.get_dewpoint(), 'Dewpoint-Dome')
+                header[head.hum_dome] = (info.get_humidity_dome(), 'Humidity-Dome')
+                header[head.temp_schm] = (info.get_temperature_schmidtplate(), 'Temperature-Schmidtplate')
+                header[head.heating] = (info.get_heating(), '#0-off, 1-on')
+                header[head.temp_mount] = (info.get_temperature_mount(), 'Temperature mount')
+                header[head.temp_out] = (info.get_temperature_outside(),
                                          'Temperature outside of the dome')
-                header[head.hum_out] = (float(info.weather_data.humidity_outside), 'Humidity outside of the dome')
+                header[head.hum_out] = (info.get_humidity_outside(), 'Humidity outside of the dome')
 
             # telescope information
             header[head.lat] = (50 + 58. / 60 + 48.8 / 3600, 'Latitude of the observatory')
@@ -231,25 +226,25 @@ class Camera:
 
         return header
 
-    def take_image(self, image_information, reset_abort=False):
+    def take_image(self, image_information):
         """
-        Starts a new exposure with an :class:`camera_ascom.ImageInformation`
+        Starts a new exposure with an :class:`Camera.meta.image_information.ImageInformation`
         object.
 
         :param image_information: Information of the image
-        :type image_information: :class:`camera_ascom.ImageInformation`
+        :type image_information: Camera.meta.image_information.ImageInformation
         """
 
         self.camera_status.reset_stopped()
         self.image_abort = False
-        if image_information.number > 1:
+        if image_information.get_image_amount() > 1:
             self.sequence = True
         th = Thread(target=self.__take_image__, args=(image_information,))
         th.start()
 
     def __take_image__(self, image_information):
-        self.image_left = image_information.number
-        for i in range(image_information.number):
+        self.image_left = image_information.get_image_amount()
+        for i in range(image_information.get_image_amount()):
             image_information.update_date()
             # stops the next exposure if the last exposure was stopped
             # or aborted

@@ -87,7 +87,6 @@ class Driver:
         self.driver_type = driver_type
         self.driver = None
         self.connection = False
-        print(driver_name)
         self.__driver_initialisation__(driver_name)
         self.error_message = ''
         self.driver_lock = Lock()
@@ -143,7 +142,6 @@ class Driver:
         message += 'Time: ' + datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         # store the complete error message 
         self.error_message = message
-        print(message)
         
     def get_error_message(self):
         """
@@ -237,7 +235,7 @@ def set_driver_information(path, driver_type, driver_name):
         prefix = ''
         if '\n' not in lines[-1]:
             prefix = '\n'
-        f.write(prefix+driver_type + '\t' + driver_name+'\n')
+        f.write('{}{}\t{}\n'.format(prefix, driver_type, driver_name))
         f.flush()
     except IOError as e:
         print(e)

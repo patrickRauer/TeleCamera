@@ -4,6 +4,10 @@ Created on Thu Jun 30 14:34:41 2016
 
 @author: Patrick Rauer
 """
+import os
+
+
+HEADER_PATH = './header_names.dat'
 
 
 class Header:
@@ -74,7 +78,10 @@ def read_in(name):
     :return: The value of the header item in the header item file.
     :rtype: str
     """
-    f = open('./header_names.dat')
+
+    if not os.path.exists(HEADER_PATH):
+        return ''
+    f = open(HEADER_PATH)
     r = ''
     for line in f:
         if name in line and not ('#' in line):
